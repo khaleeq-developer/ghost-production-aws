@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars for local overrides (git-ignored).
+aws_region = "us-east-1"
+project    = "ghost-production-aws"
+
+# Stage 1 network layout: public ALB/NAT, private ECS, and isolated RDS.
+vpc_cidr                 = "10.0.0.0/16"
+public_subnet_cidrs      = ["10.0.0.0/24", "10.0.1.0/24"]
+database_subnet_cidrs    = ["10.0.10.0/24", "10.0.11.0/24"]
+application_subnet_cidrs = ["10.0.20.0/24", "10.0.21.0/24"]
+
+# Cloudflare remains authoritative for DNS. Before applying, request an ACM
+# certificate for this hostname in aws_region, validate it using Cloudflare's
+# DNS-only validation CNAME, and paste the issued certificate ARN below.
+domain_name         = "ghost.example.com"
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me"

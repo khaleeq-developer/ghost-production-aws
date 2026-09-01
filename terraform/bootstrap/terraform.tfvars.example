@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and replace the bucket suffix.
+# S3 bucket names are globally unique, lowercase, and may contain hyphens.
+aws_region        = "us-east-1"
+project           = "ghost-aws"
+state_bucket_name = "ghost-aws-tfstate-replace-with-unique-suffix"

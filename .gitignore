@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────
+# Terraform state — NEVER commit. tfstate holds secrets in plaintext.
+# ─────────────────────────────────────────────────────────────
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl.bak
+crash.log
+crash.*.log
+
+# Variable files that may contain secrets. Commit only *.tfvars.example.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Terraform plan output (can contain secret values)
+*.tfplan
+plan.out
+
+# ─────────────────────────────────────────────────────────────
+# Credentials & keys — public repo is scanned by bots within minutes
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pub
+*_rsa
+*_rsa.pub
+credentials
+aws-credentials
+.aws/
+
+# Local planning, learning notes, and agent working documents.
+# Public-facing documentation belongs in the repository READMEs.
+/docs/
+
+# ─────────────────────────────────────────────────────────────
+# OS / editor noise
+# ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
