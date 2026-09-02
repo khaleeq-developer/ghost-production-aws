@@ -39,9 +39,33 @@ variable "database_secret_arn" {
 }
 
 variable "ghost_image" {
-  description = "Pinned official Ghost container image used in Stage 1."
+  description = "Official Ghost container image pinned by immutable manifest digest."
   type        = string
-  default     = "ghost:6.59.0-alpine"
+
+  validation {
+    condition     = can(regex("^(docker\\.io/library/)?ghost@sha256:[0-9a-f]{64}$", var.ghost_image))
+    error_message = "ghost_image must use the official Ghost repository and a sha256 digest."
+  }
+}
+
+variable "media_bucket_name" {
+  description = "Name of the private S3 bucket used by Ghost's built-in S3Storage adapter."
+  type        = string
+}
+
+variable "media_bucket_arn" {
+  description = "ARN of the private Ghost media bucket."
+  type        = string
+}
+
+variable "media_cdn_url" {
+  description = "HTTPS CloudFront base URL returned by Ghost for uploaded media."
+  type        = string
+
+  validation {
+    condition     = can(regex("^https://[^/]+$", var.media_cdn_url))
+    error_message = "media_cdn_url must be an HTTPS origin without a trailing slash or path."
+  }
 }
 
 variable "ghost_port" {

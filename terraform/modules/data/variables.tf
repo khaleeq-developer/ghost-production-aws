@@ -31,7 +31,7 @@ variable "database_username" {
 }
 
 variable "instance_class" {
-  description = "RDS instance class for the Stage 1 lab."
+  description = "Cost-conscious RDS instance class for this deployment."
   type        = string
   default     = "db.t4g.micro"
 }
@@ -46,4 +46,10 @@ variable "backup_retention_days" {
   description = "Number of days RDS automated backups are retained."
   type        = number
   default     = 7
+}
+
+variable "deletion_protection" {
+  description = "Protect the Ghost database from deletion during normal operation."
+  type        = bool
+  default     = true
 }

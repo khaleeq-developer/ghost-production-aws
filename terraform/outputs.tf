@@ -32,3 +32,18 @@ output "database_endpoint" {
   description = "RDS endpoint for connectivity troubleshooting."
   value       = module.data.database_endpoint
 }
+
+output "media_bucket_name" {
+  description = "Private versioned S3 bucket containing Ghost uploads."
+  value       = module.media.bucket_name
+}
+
+output "media_cdn_url" {
+  description = "CloudFront HTTPS base URL used for Ghost media."
+  value       = module.media.cdn_url
+}
+
+output "media_cloudfront_distribution_id" {
+  description = "CloudFront distribution ID used for media operations."
+  value       = module.media.cloudfront_distribution_id
+}

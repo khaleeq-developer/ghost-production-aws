@@ -33,7 +33,7 @@ credentials
 aws-credentials
 .aws/
 
-# Local planning, learning notes, and agent working documents.
+# Local planning and learning notes.
 # Public-facing documentation belongs in the repository READMEs.
 /docs/
 

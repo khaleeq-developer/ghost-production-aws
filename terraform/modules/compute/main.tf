@@ -40,7 +40,7 @@ resource "aws_iam_role_policy" "database_secret" {
   policy      = data.aws_iam_policy_document.database_secret.json
 }
 
-# Ghost has no AWS API permissions in Stage 1; later stages add only what it needs.
+# Ghost receives only the media-bucket permissions declared in media.tf.
 resource "aws_iam_role" "task" {
   name_prefix        = "ghost-task-"
   description        = "Application role for the Ghost container"
@@ -118,6 +118,58 @@ resource "aws_ecs_task_definition" "ghost" {
         {
           name  = "logging__transports"
           value = "[\"stdout\"]"
+        },
+        {
+          name  = "storage__active"
+          value = "S3Storage"
+        },
+        {
+          name  = "storage__media__adapter"
+          value = "S3Storage"
+        },
+        {
+          name  = "storage__media__staticFileURLPrefix"
+          value = "content/media"
+        },
+        {
+          name  = "storage__files__adapter"
+          value = "S3Storage"
+        },
+        {
+          name  = "storage__files__staticFileURLPrefix"
+          value = "content/files"
+        },
+        {
+          name  = "storage__S3Storage__bucket"
+          value = var.media_bucket_name
+        },
+        {
+          name  = "storage__S3Storage__region"
+          value = var.aws_region
+        },
+        {
+          name  = "storage__S3Storage__cdnUrl"
+          value = var.media_cdn_url
+        },
+        {
+          name  = "storage__S3Storage__staticFileURLPrefix"
+          value = "content/images"
+        },
+        {
+          name  = "storage__S3Storage__multipartUploadThresholdBytes"
+          value = "20971520"
+        },
+        {
+          name  = "storage__S3Storage__multipartChunkSizeBytes"
+          value = "8388608"
+        },
+        {
+          name  = "urls__media"
+          value = var.media_cdn_url
+        },
+        {
+          name  = "urls__files"
+          value = var.media_cdn_url
         }
       ]
 
@@ -158,6 +210,7 @@ resource "aws_ecs_task_definition" "ghost" {
   depends_on = [
     aws_iam_role_policy_attachment.execution,
     aws_iam_role_policy.database_secret,
+    aws_iam_role_policy.media,
   ]
 
   tags = {
@@ -175,7 +228,7 @@ resource "aws_ecs_service" "ghost" {
 
   health_check_grace_period_seconds = 180
 
-  # One writable Ghost container avoids concurrent filesystem state in Stage 1.
+  # One task avoids concurrent writes to the remaining container-local filesystem.
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
 

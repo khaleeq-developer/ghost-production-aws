@@ -82,3 +82,19 @@ variable "acm_certificate_arn" {
     error_message = "acm_certificate_arn must be a valid ACM certificate ARN."
   }
 }
+
+variable "ghost_image" {
+  description = "Official Ghost 6.59.0 Alpine image pinned by immutable Docker manifest digest."
+  type        = string
+
+  validation {
+    condition     = can(regex("^(docker\\.io/library/)?ghost@sha256:[0-9a-f]{64}$", var.ghost_image))
+    error_message = "ghost_image must be the official Ghost image pinned as ghost@sha256:<64 lowercase hexadecimal characters>."
+  }
+}
+
+variable "allow_data_destruction" {
+  description = "Emergency teardown switch. Keep false normally; true disables RDS deletion protection and lets Terraform empty the versioned media bucket."
+  type        = bool
+  default     = false
+}
