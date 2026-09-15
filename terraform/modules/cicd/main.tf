@@ -6,7 +6,7 @@ locals {
   oidc_provider_host = "token.actions.githubusercontent.com"
 
   github_repository_parts = split("/", var.github_repository)
-  github_oidc_repository  = format(
+  github_oidc_repository = format(
     "%s@%s/%s@%s",
     local.github_repository_parts[0],
     var.github_repository_owner_id,
