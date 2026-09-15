@@ -34,16 +34,16 @@ output "database_endpoint" {
 }
 
 output "media_bucket_name" {
-  description = "Private versioned S3 bucket containing Ghost uploads."
-  value       = module.media.bucket_name
+  description = "Externally managed Cloudflare R2 bucket containing Ghost uploads."
+  value       = var.r2_bucket_name
 }
 
 output "media_cdn_url" {
-  description = "CloudFront HTTPS base URL used for Ghost media."
-  value       = module.media.cdn_url
+  description = "Cloudflare R2 custom-domain URL serving Ghost media."
+  value       = local.r2_media_url
 }
 
-output "media_cloudfront_distribution_id" {
-  description = "CloudFront distribution ID used for media operations."
-  value       = module.media.cloudfront_distribution_id
+output "media_r2_endpoint" {
+  description = "Cloudflare R2 S3-compatible endpoint configured in Ghost."
+  value       = local.r2_endpoint
 }

@@ -22,7 +22,7 @@ variable "vpc_cidr" {
 }
 
 variable "public_subnet_cidrs" {
-  description = "Two public subnet CIDRs used by the ALB and NAT gateway."
+  description = "Two public subnet CIDRs used by the public ALB and NAT gateway."
   type        = list(string)
   default     = ["10.0.0.0/24", "10.0.1.0/24"]
 
@@ -74,12 +74,12 @@ variable "domain_name" {
 }
 
 variable "acm_certificate_arn" {
-  description = "ARN of an issued ACM certificate matching domain_name in the same region as the ALB."
+  description = "ARN of an issued ACM certificate matching domain_name for ALB viewer TLS in the configured deployment partition and Region."
   type        = string
 
   validation {
     condition     = can(regex("^arn:[^:]+:acm:[^:]+:[0-9]{12}:certificate/.+$", var.acm_certificate_arn))
-    error_message = "acm_certificate_arn must be a valid ACM certificate ARN."
+    error_message = "acm_certificate_arn must be an ACM certificate ARN for the configured deployment partition and Region."
   }
 }
 
@@ -93,8 +93,48 @@ variable "ghost_image" {
   }
 }
 
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID containing the externally managed Ghost R2 bucket."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{32}$", var.cloudflare_account_id))
+    error_message = "cloudflare_account_id must be a 32-character lowercase hexadecimal identifier."
+  }
+}
+
+variable "r2_bucket_name" {
+  description = "Name of the externally managed Cloudflare R2 bucket used by Ghost."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", var.r2_bucket_name))
+    error_message = "r2_bucket_name must be 3-63 lowercase letters, digits, or hyphens and start/end with a letter or digit."
+  }
+}
+
+variable "r2_media_hostname" {
+  description = "Cloudflare R2 custom hostname serving Ghost media without a scheme or path."
+  type        = string
+
+  validation {
+    condition     = can(regex("^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$", var.r2_media_hostname))
+    error_message = "r2_media_hostname must be a fully qualified hostname without a scheme or path."
+  }
+}
+
+variable "r2_credentials_secret_arn" {
+  description = "ARN of the externally managed Secrets Manager secret containing R2 accessKeyId and secretAccessKey fields."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:[^:]+:secretsmanager:[^:]+:[0-9]{12}:secret:.+$", var.r2_credentials_secret_arn))
+    error_message = "r2_credentials_secret_arn must be a Secrets Manager secret ARN."
+  }
+}
+
 variable "allow_data_destruction" {
-  description = "Emergency teardown switch. Keep false normally; true disables RDS deletion protection and lets Terraform empty the versioned media bucket."
+  description = "Emergency teardown switch. Keep false normally; true disables RDS deletion protection for an intentional destroy."
   type        = bool
   default     = false
 }

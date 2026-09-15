@@ -1,27 +1,16 @@
 # Terraform modules
 
-The root configuration in `terraform/` composes four focused modules for one
-environment.
+| Module | Responsibility | Owner root |
+| --- | --- | --- |
+| `network` | VPC, subnets, routing, NAT, ALB, and security groups | `terraform` |
+| `data` | RDS MySQL, database secret, backups, and deletion guards | `terraform` |
+| `compute` | ECS Fargate, runtime IAM, logs, and Ghost/R2 configuration | `terraform` |
+| `cicd` | GitHub OIDC provider and plan/apply roles | `terraform/bootstrap` |
 
-| Module | Responsibility |
-| --- | --- |
-| `network` | VPC, six subnets, routing, NAT Gateway, ALB, listeners, target group and security groups |
-| `data` | RDS MySQL, generated credentials, Secrets Manager, backups and deletion safeguards |
-| `media` | Private encrypted/versioned S3 storage and CloudFront delivery with OAC |
-| `compute` | IAM roles, CloudWatch logs, ECS, and Ghost's built-in S3Storage configuration |
+The main root is disposable. Bootstrap is persistent so destroying the Ghost
+stack does not remove the remote-state bucket or the identity CI needs to
+recreate it.
 
-Module boundaries follow the request path:
-
-```text
-network outputs ──► data ──► compute
-                         ▲
-media outputs ───────────┘
-```
-
-The network module supplies private subnets and security-group boundaries. The
-data module supplies the database secret. The media module supplies the bucket
-and CDN boundary. The compute module consumes those outputs to run Ghost without
-a public IP or long-lived AWS credentials.
-
-Application-wide edge protection and observability are not currently
-implemented.
+Cloudflare R2, its custom hostname, and its API token are external resources.
+The compute module receives their identifiers and the ARN of the AWS secret
+containing the R2 credentials.

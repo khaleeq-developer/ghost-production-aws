@@ -1,49 +1,38 @@
-# Terraform backend bootstrap
+# Terraform bootstrap
 
-This configuration creates the S3 bucket used by the main Terraform root for
-remote state. It belongs in the repository: a new operator should be able to
-reproduce the backend instead of relying on an undocumented, manually created
-bucket.
+This local-state root creates resources that must survive application teardown:
 
-The bootstrap root deliberately keeps its own state locally because it cannot
-store state in a bucket that does not exist yet. Its real `terraform.tfvars`,
-`.terraform/` directory and state files are ignored by Git.
+- encrypted and versioned S3 remote-state bucket
+- native S3 lockfile access
+- GitHub Actions OIDC provider
+- separate pull-request plan and production apply roles
 
-## What it creates
+## One-time setup
 
-- An encrypted, versioned S3 bucket
-- Native S3 lockfile support for the main Terraform root
-- A bucket policy denying insecure transport
-- Retention of the five newest noncurrent state versions
-- Expiration of older noncurrent versions after 90 days
-- Protection against accidental Terraform destruction
+Copy `terraform.tfvars.example` to the ignored `terraform.tfvars`, then set the
+globally unique bucket name and GitHub repository in `owner/repository` form.
 
-No DynamoDB lock table is required. The main backend uses
-`use_lockfile = true`, available in Terraform 1.11 and later.
-
-## Usage
-
-Run from the repository root:
+From the repository root:
 
 ```bash
-cp terraform/bootstrap/terraform.tfvars.example terraform/bootstrap/terraform.tfvars
-# Set a globally unique state_bucket_name in the copied file.
-
 terraform -chdir=terraform/bootstrap init
 terraform -chdir=terraform/bootstrap plan
 terraform -chdir=terraform/bootstrap apply
-terraform -chdir=terraform/bootstrap output -raw state_bucket
+terraform -chdir=terraform/bootstrap output
 ```
 
-Copy the output into the `bucket` field in `terraform/backend.tf`, then
-initialize the main Terraform root.
+The main root's `backend.tf` must identify the same bucket, Region, and state
+key. Add the three relevant outputs to GitHub as:
 
-If the bucket already exists, retain the original bootstrap variable file and
-local bootstrap state. Do not choose a new name or create a second backend.
+- `state_bucket` → `TERRAFORM_STATE_BUCKET`
+- `github_actions_plan_role_arn` → `TERRAFORM_PLAN_ROLE_ARN`
+- `github_actions_apply_role_arn` → `TERRAFORM_APPLY_ROLE_ARN`
 
-## Destruction warning
+The bootstrap state remains local because this root creates its own backend.
+Preserve its ignored tfvars and state files securely.
 
-Do not destroy this configuration while the main stack still uses the bucket.
-Doing so would orphan its remote state. The bucket has Terraform lifecycle
-protection, so removing it requires a deliberate code change after the main
-stack has been destroyed or its state has been migrated.
+## Lifecycle
+
+Do not destroy bootstrap while the main stack uses its state or CI roles. The
+bucket has `prevent_destroy`; deliberate removal requires changing that guard
+only after the application state has been destroyed or migrated.

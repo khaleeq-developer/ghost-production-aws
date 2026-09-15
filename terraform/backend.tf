@@ -1,11 +1,10 @@
 terraform {
-  # Remote state in S3 with native lockfile locking. The bucket is created once
-  # by terraform/bootstrap. Fill in the bucket name from that config's output.
-  #
-  # NOTE: backend blocks cannot use variables. Either hardcode the values below,
-  # or leave them partial and pass via `terraform init -backend-config=...`.
+  # Remote state in S3 with native lockfile locking. The bucket is intentionally
+  # omitted so every operator supplies their bootstrap output and AWS Region
+  # through `terraform init -backend-config=...` instead of committing
+  # account-specific backend values.
   backend "s3" {
-    bucket       = "ghost-aws-tfstate-1a2b3c4d" # <- from bootstrap output
+    bucket       = "ghost-aws-tfstate-1a2b3c4d"
     key          = "ghost-production-aws/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
