@@ -42,19 +42,16 @@ The bootstrap root must exist before CI can authenticate or use remote state.
 Configure its example variables, apply it with an administrative AWS identity,
 and retain its local state. See [terraform/bootstrap](terraform/bootstrap/README.md).
 
-Add these bootstrap outputs as GitHub repository variables:
+Create `plan` and `production` GitHub environments. Put the shared configuration
+variables in both environments: `TERRAFORM_STATE_BUCKET`, `AWS_REGION`,
+`DOMAIN_NAME`, `ACM_CERTIFICATE_ARN`, `GHOST_IMAGE`, `CLOUDFLARE_ACCOUNT_ID`,
+`R2_BUCKET_NAME`, `R2_MEDIA_HOSTNAME`, and `R2_CREDENTIALS_SECRET_ARN`.
 
-- `TERRAFORM_PLAN_ROLE_ARN`
-- `TERRAFORM_APPLY_ROLE_ARN`
-- `TERRAFORM_STATE_BUCKET`
-
-Also configure `AWS_REGION`, `DOMAIN_NAME`, `ACM_CERTIFICATE_ARN`, `GHOST_IMAGE`,
-`CLOUDFLARE_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_MEDIA_HOSTNAME`, and
-`R2_CREDENTIALS_SECRET_ARN`.
-
-Create a GitHub environment named `production`, restrict it to `main`, and add
-approval protection if available. A pull request runs static checks and a
-speculative plan; merging to `main` runs the protected apply workflow.
+Add `TERRAFORM_PLAN_ROLE_ARN` only to `plan`, and
+`TERRAFORM_APPLY_ROLE_ARN` only to `production`. Keep `plan` unrestricted;
+restrict `production` to `main` and add approval protection if available. A
+pull request runs static checks and a speculative plan; merging to `main` runs
+the protected apply workflow.
 
 After deployment, point the Ghost hostname at the `alb_dns_name` output. The R2
 custom domain serves `/content/images`, `/content/media`, and `/content/files`.

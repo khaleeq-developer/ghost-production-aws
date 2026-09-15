@@ -61,6 +61,7 @@ jobs:
     # Never expose AWS credentials or an OIDC token to forked pull-request code.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    environment: plan
     permissions:
       contents: read
       id-token: write

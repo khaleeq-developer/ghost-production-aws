@@ -30,7 +30,7 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
 
 data "aws_iam_policy_document" "plan_assume_role" {
   statement {
-    sid     = "GitHubPullRequestsFromThisRepositoryOnly"
+    sid     = "GitHubPlanEnvironmentFromThisRepositoryOnly"
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -48,7 +48,7 @@ data "aws_iam_policy_document" "plan_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_provider_host}:sub"
-      values   = ["repo:${var.github_repository}:pull_request"]
+      values   = ["repo:${var.github_repository}:environment:plan"]
     }
   }
 }

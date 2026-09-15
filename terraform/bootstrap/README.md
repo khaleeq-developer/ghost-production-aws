@@ -22,11 +22,11 @@ terraform -chdir=terraform/bootstrap output
 ```
 
 The main root's `backend.tf` must identify the same bucket, Region, and state
-key. Add the three relevant outputs to GitHub as:
+key. Add the relevant outputs to the GitHub environments as:
 
-- `state_bucket` → `TERRAFORM_STATE_BUCKET`
-- `github_actions_plan_role_arn` → `TERRAFORM_PLAN_ROLE_ARN`
-- `github_actions_apply_role_arn` → `TERRAFORM_APPLY_ROLE_ARN`
+- `state_bucket` → `TERRAFORM_STATE_BUCKET` in both environments
+- `github_actions_plan_role_arn` → `TERRAFORM_PLAN_ROLE_ARN` in `plan`
+- `github_actions_apply_role_arn` → `TERRAFORM_APPLY_ROLE_ARN` in `production`
 
 The bootstrap state remains local because this root creates its own backend.
 Preserve its ignored tfvars and state files securely.
