@@ -1,6 +1,6 @@
 # Terraform workflows
 
-`terraform-pr.yml` runs formatting, validation, TFLint, and Trivy checks. For a
+`terraform-pr.yml` runs formatting, validation, and TFLint checks. For a
 same-repository pull request, it also assumes the bootstrap plan role and runs
 a speculative plan. Forked pull requests never receive AWS credentials.
 
