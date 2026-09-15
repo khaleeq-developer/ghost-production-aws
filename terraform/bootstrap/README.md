@@ -10,7 +10,8 @@ This local-state root creates resources that must survive application teardown:
 ## One-time setup
 
 Copy `terraform.tfvars.example` to the ignored `terraform.tfvars`, then set the
-globally unique bucket name and GitHub repository in `owner/repository` form.
+globally unique bucket name, GitHub repository, and its numeric owner and
+repository IDs.
 
 From the repository root:
 

@@ -106,9 +106,11 @@ resource "aws_s3_bucket_policy" "state_tls_only" {
 module "cicd" {
   source = "../modules/cicd"
 
-  project                = var.project
-  github_repository      = var.github_repository
-  terraform_state_bucket = aws_s3_bucket.state.id
-  terraform_state_key    = var.terraform_state_key
-  terraform_state_region = var.aws_region
+  project                    = var.project
+  github_repository          = var.github_repository
+  github_repository_owner_id = var.github_repository_owner_id
+  github_repository_id       = var.github_repository_id
+  terraform_state_bucket     = aws_s3_bucket.state.id
+  terraform_state_key        = var.terraform_state_key
+  terraform_state_region     = var.aws_region
 }

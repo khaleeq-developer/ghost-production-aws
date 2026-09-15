@@ -5,6 +5,15 @@ data "aws_caller_identity" "current" {}
 locals {
   oidc_provider_host = "token.actions.githubusercontent.com"
 
+  github_repository_parts = split("/", var.github_repository)
+  github_oidc_repository  = format(
+    "%s@%s/%s@%s",
+    local.github_repository_parts[0],
+    var.github_repository_owner_id,
+    local.github_repository_parts[1],
+    var.github_repository_id,
+  )
+
   state_bucket_arn            = "arn:${data.aws_partition.current.partition}:s3:::${var.terraform_state_bucket}"
   state_object_arn            = "${local.state_bucket_arn}/${var.terraform_state_key}"
   lockfile_arn                = "${local.state_object_arn}.tflock"
@@ -48,7 +57,7 @@ data "aws_iam_policy_document" "plan_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_provider_host}:sub"
-      values   = ["repo:${var.github_repository}:environment:plan"]
+      values   = ["repo:${local.github_oidc_repository}:environment:plan"]
     }
   }
 }
@@ -73,7 +82,7 @@ data "aws_iam_policy_document" "apply_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_provider_host}:sub"
-      values   = ["repo:${var.github_repository}:environment:production"]
+      values   = ["repo:${local.github_oidc_repository}:environment:production"]
     }
   }
 }

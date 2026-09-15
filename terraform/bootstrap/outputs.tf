@@ -4,11 +4,11 @@ output "state_bucket" {
 }
 
 output "github_actions_plan_role_arn" {
-  description = "GitHub repository variable value for speculative Terraform plans."
+  description = "GitHub plan environment variable value for speculative Terraform plans."
   value       = module.cicd.plan_role_arn
 }
 
 output "github_actions_apply_role_arn" {
-  description = "GitHub repository variable value for protected production applies."
+  description = "GitHub production environment variable value for protected Terraform applies."
   value       = module.cicd.apply_role_arn
 }

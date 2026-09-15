@@ -4,6 +4,8 @@ aws_region        = "us-east-1"
 project           = "ghost-production-aws"
 state_bucket_name = "ghost-production-aws-tfstate-replace-with-unique-suffix"
 
-# The repository trusted by GitHub Actions and the main root's remote-state key.
-github_repository   = "owner/repository"
-terraform_state_key = "ghost-production-aws/terraform.tfstate"
+# The repository trusted by GitHub Actions and its immutable numeric IDs.
+github_repository          = "owner/repository"
+github_repository_owner_id = "YOUR_OWNER_ID"
+github_repository_id       = "YOUR_REPOSITORY_ID"
+terraform_state_key        = "ghost-production-aws/terraform.tfstate"

@@ -35,3 +35,23 @@ variable "github_repository" {
     error_message = "github_repository must be in exact owner/repository form."
   }
 }
+
+variable "github_repository_owner_id" {
+  description = "Immutable numeric GitHub account ID of the repository owner."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_owner_id))
+    error_message = "github_repository_owner_id must contain only digits."
+  }
+}
+
+variable "github_repository_id" {
+  description = "Immutable numeric GitHub repository ID."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
+    error_message = "github_repository_id must contain only digits."
+  }
+}
