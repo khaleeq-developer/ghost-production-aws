@@ -90,6 +90,41 @@ jobs:
           terraform_version: "1.15.8"
           terraform_wrapper: false
 
+      # Temporary diagnostic: print selected identity claims, never the JWT.
+      - name: Inspect GitHub OIDC claims
+        shell: bash
+        run: |
+          oidc_response="$(curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")"
+          oidc_token="$(jq --raw-output '.value' <<< "${oidc_response}")"
+
+          OIDC_TOKEN="${oidc_token}" node <<'NODE'
+          const tokenParts = process.env.OIDC_TOKEN.split(".");
+          if (tokenParts.length !== 3) {
+            throw new Error("GitHub returned an invalid OIDC token");
+          }
+
+          const claims = JSON.parse(
+            Buffer.from(tokenParts[1], "base64url").toString("utf8")
+          );
+          const visibleClaims = {
+            iss: claims.iss,
+            aud: claims.aud,
+            sub: claims.sub,
+            environment: claims.environment,
+            event_name: claims.event_name,
+            ref: claims.ref,
+            repository: claims.repository,
+            repository_id: claims.repository_id,
+            repository_owner: claims.repository_owner,
+            repository_owner_id: claims.repository_owner_id,
+            workflow_ref: claims.workflow_ref,
+          };
+
+          console.log(JSON.stringify(visibleClaims, null, 2));
+          NODE
+
       - name: Configure AWS credentials through GitHub OIDC
         uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
         with:
