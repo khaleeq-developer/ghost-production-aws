@@ -20,8 +20,8 @@ locals {
 }
 
 resource "aws_iam_openid_connect_provider" "github_actions" {
-  url             = "https://${local.oidc_provider_host}"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://${local.oidc_provider_host}"
+  client_id_list = ["sts.amazonaws.com"]
 
   tags = {
     Name = "${var.project}-github-actions-oidc"
@@ -420,9 +420,9 @@ data "aws_iam_policy_document" "apply" {
   }
 
   statement {
-    sid    = "PassOnlyExistingEcsRuntimeRolesToEcsTasks"
-    effect = "Allow"
-    actions = ["iam:PassRole"]
+    sid       = "PassOnlyExistingEcsRuntimeRolesToEcsTasks"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
     resources = local.ecs_runtime_role_arns
 
     condition {

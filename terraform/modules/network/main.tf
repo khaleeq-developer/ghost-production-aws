@@ -8,21 +8,21 @@ locals {
   public_subnets = {
     for index, cidr in var.public_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 
   application_subnets = {
     for index, cidr in var.application_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 
   database_subnets = {
     for index, cidr in var.database_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 }
