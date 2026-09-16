@@ -5,9 +5,11 @@ same-repository pull request, it also assumes the bootstrap plan role and runs
 a speculative plan. Forked pull requests never receive AWS credentials.
 
 `terraform-apply.yml` plans every push to `main` with the plan role and stores
-the binary plan briefly in the private state bucket. A manual run on the same
-commit, confirmed with `APPLY`, downloads, verifies, and applies that exact
-plan with the production role.
+the binary plan briefly in the private state bucket. A manual run with
+`action=plan` regenerates the saved plan for the current `main` commit, which
+is needed after state changes outside CI (the old plan is rejected as stale).
+A manual run with `action=apply`, confirmed with `APPLY`, downloads, verifies,
+and applies that exact plan with the production role.
 
 `terraform-destroy.yml` is manual-only. Running it on `main` with `DESTROY`
 creates, displays, and applies an exact destroy plan for the application stack.
