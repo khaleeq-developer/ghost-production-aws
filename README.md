@@ -23,7 +23,7 @@ load balancer. Cloudflare manages DNS and the R2 bucket/custom media hostname.
 - `terraform/bootstrap` — persistent state bucket and GitHub OIDC roles
 - `terraform/modules` — network, data, compute, and CI identity modules
 - `terraform` — disposable Ghost application stack
-- `.github/workflows` — pull-request checks and protected production apply
+- `.github/workflows` — pull-request checks, deployment, and teardown
 
 ## Prerequisites
 
@@ -49,19 +49,24 @@ variables in both environments: `TERRAFORM_STATE_BUCKET`, `AWS_REGION`,
 
 Add `TERRAFORM_PLAN_ROLE_ARN` only to `plan`, and
 `TERRAFORM_APPLY_ROLE_ARN` only to `production`. Keep `plan` unrestricted;
-restrict `production` to `main` and add approval protection if available. A
-pull request runs static checks and a speculative plan; merging to `main` runs
-the protected apply workflow.
+restrict `production` to `main`. Required reviewers are optional.
+
+A pull request runs static checks and a speculative plan. A push to `main`
+creates a saved production plan and stores it briefly in the private state
+bucket. To deploy it, run **Terraform production deployment** on `main` and
+enter `APPLY`. Use the separate **Terraform production destroy** workflow with
+`DESTROY` to tear down the application stack.
 
 After deployment, point the Ghost hostname at the `alb_dns_name` output. The R2
 custom domain serves `/content/images`, `/content/media`, and `/content/files`.
 
 ## Operational notes
 
-- RDS deletion protection is enabled unless `allow_data_destruction = true`.
+- RDS deletion protection is disabled by default for this experimental stack;
+  set `allow_data_destruction = false` for a longer-lived deployment.
 - The application stack can be destroyed without deleting bootstrap or R2.
-- The apply workflow provisions and updates infrastructure; teardown is not
-  automated.
+- Saved plans expire from the private state bucket after two days and are
+  removed immediately after a successful apply.
 - ALB, NAT Gateway, RDS, Fargate, Secrets Manager, logs, and R2 can incur cost.
 
 Not currently implemented: email delivery, payments, multi-task ECS, Multi-AZ

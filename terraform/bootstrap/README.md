@@ -3,6 +3,7 @@
 This local-state root creates resources that must survive application teardown:
 
 - encrypted and versioned S3 remote-state bucket
+- short-lived private storage for CI-generated Terraform plans
 - native S3 lockfile access
 - GitHub Actions OIDC provider
 - separate pull-request plan and production apply roles
@@ -31,6 +32,9 @@ key. Add the relevant outputs to the GitHub environments as:
 
 The bootstrap state remains local because this root creates its own backend.
 Preserve its ignored tfvars and state files securely.
+
+Reapply this root after changing CI role permissions or plan-storage lifecycle
+rules. Saved production plans expire automatically after two days.
 
 ## Lifecycle
 

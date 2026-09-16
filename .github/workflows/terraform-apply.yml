@@ -1,14 +1,14 @@
-name: Terraform production apply
+name: Terraform production deployment
 
 on:
   push:
     branches: [main]
-    paths:
-      - "terraform/**"
-      - ".github/workflows/terraform-*.yml"
-      - "README.md"
-      - "terraform/modules/README.md"
   workflow_dispatch:
+    inputs:
+      confirm_apply:
+        description: "Type APPLY to deploy the saved plan for the selected main commit"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,10 +23,11 @@ env:
   TF_WORKING_DIR: terraform
 
 jobs:
-  apply:
-    name: Apply reviewed production plan
+  plan:
+    name: Create production plan
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production
+    environment: plan
     permissions:
       contents: read
       id-token: write
@@ -43,7 +44,7 @@ jobs:
       TF_STATE_KEY: ghost-production-aws/terraform.tfstate
 
     steps:
-      - name: Check out main
+      - name: Check out main commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Terraform
@@ -56,8 +57,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
         with:
           aws-region: ${{ vars.AWS_REGION }}
-          role-to-assume: ${{ vars.TERRAFORM_APPLY_ROLE_ARN }}
-          role-session-name: terraform-apply-${{ github.run_id }}
+          role-to-assume: ${{ vars.TERRAFORM_PLAN_ROLE_ARN }}
+          role-session-name: terraform-plan-main-${{ github.run_id }}
 
       - name: Initialize the remote backend
         run: >-
@@ -75,6 +76,107 @@ jobs:
         run: terraform show -no-color production.tfplan
         working-directory: ${{ env.TF_WORKING_DIR }}
 
+      - name: Save plan checksum
+        run: sha256sum production.tfplan > production.tfplan.sha256
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Store encrypted plan for manual apply
+        env:
+          PLAN_PREFIX: github-plans/${{ github.sha }}
+        run: |
+          aws s3 cp production.tfplan \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan" \
+            --sse AES256 --only-show-errors
+          aws s3 cp production.tfplan.sha256 \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan.sha256" \
+            --sse AES256 --only-show-errors
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+  apply:
+    name: Apply saved production plan
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
+      TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
+      TF_VAR_ghost_image: ${{ vars.GHOST_IMAGE }}
+      TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      TF_VAR_r2_bucket_name: ${{ vars.R2_BUCKET_NAME }}
+      TF_VAR_r2_media_hostname: ${{ vars.R2_MEDIA_HOSTNAME }}
+      TF_VAR_r2_credentials_secret_arn: ${{ vars.R2_CREDENTIALS_SECRET_ARN }}
+      TF_STATE_BUCKET: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      TF_STATE_KEY: ghost-production-aws/terraform.tfstate
+      PLAN_PREFIX: github-plans/${{ github.sha }}
+
+    steps:
+      - name: Validate manual apply request
+        env:
+          CONFIRM_APPLY: ${{ inputs.confirm_apply }}
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Select the main branch when running this workflow."
+            exit 1
+          fi
+          if [[ "${CONFIRM_APPLY}" != "APPLY" ]]; then
+            echo "Confirmation must be exactly APPLY."
+            exit 1
+          fi
+
+      - name: Check out planned main commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.TERRAFORM_APPLY_ROLE_ARN }}
+          role-session-name: terraform-apply-${{ github.run_id }}
+
+      - name: Download saved plan for this commit
+        run: |
+          aws s3 cp \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan" \
+            production.tfplan --only-show-errors
+          aws s3 cp \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan.sha256" \
+            production.tfplan.sha256 --only-show-errors
+          sha256sum --check production.tfplan.sha256
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Initialize the remote backend
+        run: >-
+          terraform init -input=false -reconfigure
+          -backend-config="bucket=${TF_STATE_BUCKET}"
+          -backend-config="key=${TF_STATE_KEY}"
+          -backend-config="region=${TF_VAR_aws_region}"
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Display saved production plan
+        run: terraform show -no-color production.tfplan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
       - name: Apply the exact saved plan
         run: terraform apply -input=false -no-color production.tfplan
         working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Remove applied plan
+        run: |
+          aws s3 rm \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan" \
+            --only-show-errors
+          aws s3 rm \
+            "s3://${TF_STATE_BUCKET}/${PLAN_PREFIX}/production.tfplan.sha256" \
+            --only-show-errors

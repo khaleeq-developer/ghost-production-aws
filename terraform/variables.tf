@@ -134,7 +134,7 @@ variable "r2_credentials_secret_arn" {
 }
 
 variable "allow_data_destruction" {
-  description = "Emergency teardown switch. Keep false normally; true disables RDS deletion protection for an intentional destroy."
+  description = "Allow the experimental stack to be torn down by disabling RDS deletion protection."
   type        = bool
-  default     = false
+  default     = true
 }
