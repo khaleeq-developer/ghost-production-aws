@@ -53,9 +53,11 @@ restrict `production` to `main`. Required reviewers are optional.
 
 A pull request runs static checks and a speculative plan. A push to `main`
 creates a saved production plan and stores it briefly in the private state
-bucket. To deploy it, run **Terraform production deployment** on `main` and
-enter `APPLY`. Use the separate **Terraform production destroy** workflow with
-`DESTROY` to tear down the application stack.
+bucket. To deploy it, run **Terraform production deployment** on `main` with
+`action=apply` and enter `APPLY`. If the saved plan has gone stale, run the
+same workflow with `action=plan` first to regenerate it. Use the separate
+**Terraform production destroy** workflow with `DESTROY` to tear down the
+application stack.
 
 After deployment, point the Ghost hostname at the `alb_dns_name` output. The R2
 custom domain serves `/content/images`, `/content/media`, and `/content/files`.

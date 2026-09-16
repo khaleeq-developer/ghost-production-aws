@@ -5,10 +5,19 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      confirm_apply:
-        description: "Type APPLY to deploy the saved plan for the selected main commit"
+      action:
+        description: "plan: create or refresh the saved plan for the selected main commit. apply: deploy that saved plan."
         required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+      confirm_apply:
+        description: "Type APPLY when action is apply"
+        required: false
         type: string
+        default: ""
 
 permissions:
   contents: read
@@ -23,9 +32,13 @@ env:
   TF_WORKING_DIR: terraform
 
 jobs:
+  # Runs on every push to main, and manually with action=plan so a stale saved
+  # plan (state changed outside CI) can be regenerated for the same commit.
   plan:
     name: Create production plan
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
     runs-on: ubuntu-latest
     environment: plan
     permissions:
@@ -44,8 +57,18 @@ jobs:
       TF_STATE_KEY: ghost-production-aws/terraform.tfstate
 
     steps:
+      - name: Validate manual plan request
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Select the main branch when running this workflow."
+            exit 1
+          fi
+
       - name: Check out main commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
@@ -94,7 +117,7 @@ jobs:
 
   apply:
     name: Apply saved production plan
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -123,7 +146,7 @@ jobs:
             exit 1
           fi
           if [[ "${CONFIRM_APPLY}" != "APPLY" ]]; then
-            echo "Confirmation must be exactly APPLY."
+            echo "Confirmation must be exactly APPLY when action is apply."
             exit 1
           fi
 
