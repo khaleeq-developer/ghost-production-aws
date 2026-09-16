@@ -17,6 +17,7 @@ locals {
   state_bucket_arn            = "arn:${data.aws_partition.current.partition}:s3:::${var.terraform_state_bucket}"
   state_object_arn            = "${local.state_bucket_arn}/${var.terraform_state_key}"
   lockfile_arn                = "${local.state_object_arn}.tflock"
+  ci_plan_object_arn          = "${local.state_bucket_arn}/github-plans/*"
   database_secret_arn_pattern = "arn:${data.aws_partition.current.partition}:secretsmanager:*:${data.aws_caller_identity.current.account_id}:secret:${var.project}-database-*"
 
   # Existing runtime roles predate project-prefixed role names. This narrow
@@ -110,6 +111,13 @@ resource "aws_iam_role" "apply" {
 }
 
 data "aws_iam_policy_document" "plan" {
+  statement {
+    sid       = "StoreProductionPlanForManualApply"
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = [local.ci_plan_object_arn]
+  }
+
   statement {
     sid    = "ReadTerraformState"
     effect = "Allow"
@@ -223,6 +231,16 @@ resource "aws_iam_role_policy" "plan" {
 }
 
 data "aws_iam_policy_document" "apply" {
+  statement {
+    sid    = "UseSavedProductionPlan"
+    effect = "Allow"
+    actions = [
+      "s3:DeleteObject",
+      "s3:GetObject",
+    ]
+    resources = [local.ci_plan_object_arn]
+  }
+
   statement {
     sid    = "ManageTerraformStateAndNativeLockfile"
     effect = "Allow"

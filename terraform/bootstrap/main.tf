@@ -67,6 +67,25 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
       noncurrent_days           = 90
     }
   }
+
+  # Saved plans can contain sensitive values. Keep them private in this bucket
+  # and expire both current and versioned copies after the manual-apply window.
+  rule {
+    id     = "expire-ci-plans"
+    status = "Enabled"
+
+    filter {
+      prefix = "github-plans/"
+    }
+
+    expiration {
+      days = 2
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 2
+    }
+  }
 }
 
 # Reject every S3 API request that is not transported over TLS. This is a deny
