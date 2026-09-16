@@ -59,8 +59,10 @@ same workflow with `action=plan` first to regenerate it. Use the separate
 **Terraform production destroy** workflow with `DESTROY` to tear down the
 application stack.
 
-After deployment, point the Ghost hostname at the `alb_dns_name` output. The R2
-custom domain serves `/content/images`, `/content/media`, and `/content/files`.
+After deployment, point the Ghost hostname at the `alb_dns_name` output. The
+apply run prints the outputs in its summary; run the deployment workflow with
+`action=output` to see them again later. The R2 custom domain serves
+`/content/images`, `/content/media`, and `/content/files`.
 
 ## Operational notes
 
