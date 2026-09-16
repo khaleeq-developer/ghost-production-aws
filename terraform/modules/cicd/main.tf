@@ -360,6 +360,7 @@ data "aws_iam_policy_document" "apply" {
       "ec2:DescribeVpcAttribute",
       "ec2:DescribeVpcs",
       "ec2:DetachInternetGateway",
+      "ec2:DisassociateAddress",
       "ec2:DisassociateRouteTable",
       "ec2:ModifySubnetAttribute",
       "ec2:ModifyVpcAttribute",
