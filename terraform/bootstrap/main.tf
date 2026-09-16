@@ -100,3 +100,17 @@ resource "aws_s3_bucket_policy" "state_tls_only" {
   bucket = aws_s3_bucket.state.id
   policy = data.aws_iam_policy_document.state_tls_only.json
 }
+
+# Persistent GitHub identity belongs beside the state backend. Destroying the
+# application root must not remove the roles needed to provision it again.
+module "cicd" {
+  source = "../modules/cicd"
+
+  project                    = var.project
+  github_repository          = var.github_repository
+  github_repository_owner_id = var.github_repository_owner_id
+  github_repository_id       = var.github_repository_id
+  terraform_state_bucket     = aws_s3_bucket.state.id
+  terraform_state_key        = var.terraform_state_key
+  terraform_state_region     = var.aws_region
+}

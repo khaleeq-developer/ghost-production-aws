@@ -64,6 +64,11 @@ variable "ghost_port" {
 }
 
 variable "acm_certificate_arn" {
-  description = "ARN of the issued ACM certificate used by the ALB HTTPS listener."
+  description = "ARN of the issued ACM certificate in the ALB Region used for viewer TLS."
   type        = string
+
+  validation {
+    condition     = length(trimspace(var.acm_certificate_arn)) > 0
+    error_message = "acm_certificate_arn must not be empty."
+  }
 }

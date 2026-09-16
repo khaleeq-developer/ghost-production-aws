@@ -49,22 +49,32 @@ variable "ghost_image" {
 }
 
 variable "media_bucket_name" {
-  description = "Name of the private S3 bucket used by Ghost's built-in S3Storage adapter."
+  description = "Name of the externally managed Cloudflare R2 bucket used by Ghost's built-in S3Storage adapter."
   type        = string
 }
 
-variable "media_bucket_arn" {
-  description = "ARN of the private Ghost media bucket."
-  type        = string
-}
-
-variable "media_cdn_url" {
-  description = "HTTPS CloudFront base URL returned by Ghost for uploaded media."
+variable "media_endpoint" {
+  description = "Cloudflare R2 S3-compatible HTTPS endpoint used by Ghost."
   type        = string
 
   validation {
-    condition     = can(regex("^https://[^/]+$", var.media_cdn_url))
-    error_message = "media_cdn_url must be an HTTPS origin without a trailing slash or path."
+    condition     = can(regex("^https://[0-9a-f]{32}\\.r2\\.cloudflarestorage\\.com$", var.media_endpoint))
+    error_message = "media_endpoint must be a Cloudflare account-level R2 HTTPS endpoint."
+  }
+}
+
+variable "media_credentials_secret_arn" {
+  description = "Secrets Manager ARN containing R2 accessKeyId and secretAccessKey fields."
+  type        = string
+}
+
+variable "media_url" {
+  description = "Cloudflare R2 custom-domain HTTPS origin returned by Ghost for uploaded media."
+  type        = string
+
+  validation {
+    condition     = can(regex("^https://[^/]+$", var.media_url))
+    error_message = "media_url must be an HTTPS origin without a trailing slash or path."
   }
 }
 

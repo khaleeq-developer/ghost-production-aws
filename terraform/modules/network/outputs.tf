@@ -9,7 +9,7 @@ output "availability_zones" {
 }
 
 output "public_subnet_ids" {
-  description = "Public subnet IDs used by the ALB and NAT gateway."
+  description = "Public subnet IDs used by the public ALB and NAT gateway."
   value       = [for key in sort(keys(aws_subnet.public)) : aws_subnet.public[key].id]
 }
 
@@ -32,18 +32,22 @@ output "database_subnet_ids" {
 output "alb_arn" {
   description = "ARN of the application load balancer."
   value       = aws_lb.ghost.arn
+
+  depends_on = [aws_lb_listener.https]
 }
 
 output "alb_dns_name" {
-  description = "DNS name of the application load balancer."
+  description = "Public ALB DNS name for the manual Cloudflare CNAME target."
   value       = aws_lb.ghost.dns_name
+
+  depends_on = [aws_lb_listener.https]
 }
 
 output "target_group_arn" {
   description = "ARN of the Ghost target group."
   value       = aws_lb_target_group.ghost.arn
 
-  # ECS must not use the target group before HTTPS associates it to the ALB.
+  # ECS must not use the target group before the HTTPS listener associates it.
   depends_on = [aws_lb_listener.https]
 }
 

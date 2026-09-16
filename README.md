@@ -1,125 +1,73 @@
 # Ghost on AWS with Terraform
 
-A cost-conscious deployment of [Ghost](https://ghost.org/) on AWS. Terraform
-runs a private ECS Fargate task behind an HTTPS Application Load Balancer, with
-application data stored in RDS MySQL and uploads stored in private S3.
+A compact production-style Ghost deployment using ECS Fargate, RDS MySQL, an
+HTTPS Application Load Balancer, and Cloudflare R2 for durable media.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    user[Visitor] -->|DNS lookup| dns[Cloudflare DNS]
-    user -->|HTTPS 443| alb[Public ALB]
-
-    subgraph vpc[AWS VPC]
-        alb -->|HTTP 2368| ghost[Private ECS task]
-        ghost -->|MySQL 3306| rds[Private RDS MySQL]
-        ghost -.->|Outbound only| nat[NAT Gateway]
-    end
-
-    user -->|Media HTTPS| cdn[CloudFront media CDN]
-    cdn -->|Signed OAC request| s3[Private S3 media]
-    ghost -->|AWS SDK via task role| s3
-
-    acm[ACM] -.-> alb
-    secrets[Secrets Manager] -.-> ghost
-    ghost -.-> logs[CloudWatch Logs]
+  user[Users] --> dns[Cloudflare DNS]
+  dns --> alb[Public HTTPS ALB]
+  alb --> ecs[Private ECS Fargate]
+  ecs --> rds[Isolated RDS MySQL]
+  ecs -->|S3 API| r2[(Cloudflare R2)]
+  user -->|media hostname| r2
 ```
 
-Cloudflare DNS is managed manually. TLS terminates at the ALB; ECS and RDS have
-no public IPs. CloudFront is currently used only for private media delivery.
+AWS manages the application network, compute, database, secrets, logs, and
+load balancer. Cloudflare manages DNS and the R2 bucket/custom media hostname.
 
-## What this configuration creates
+## Repository
 
-| Area | Implementation |
-| --- | --- |
-| Network | Two-AZ VPC with public, private application and isolated database subnets |
-| Entry point | Public ALB with ACM HTTPS and HTTP redirect |
-| Compute | One private Fargate task using the official Ghost 6.59.0 image pinned by digest |
-| Data | Encrypted, single-AZ RDS MySQL 8 with deletion protection and final snapshots |
-| Media | Encrypted, versioned private S3 bucket served through CloudFront OAC |
-| Secrets and logs | Secrets Manager and CloudWatch Logs |
-| State | Encrypted, versioned S3 backend with native lockfile locking |
+- `terraform/bootstrap` — persistent state bucket and GitHub OIDC roles
+- `terraform/modules` — network, data, compute, and CI identity modules
+- `terraform` — disposable Ghost application stack
+- `.github/workflows` — pull-request checks and protected production apply
 
-Security groups enforce:
+## Prerequisites
 
-```text
-Internet ──80/443──> ALB ──2368──> ECS ──3306──> RDS
-```
+- Terraform `>= 1.15.8`
+- AWS credentials for the one-time bootstrap
+- An issued ACM certificate for the Ghost hostname
+- A Cloudflare R2 bucket with a custom domain
+- An R2 Object Read & Write token stored in AWS Secrets Manager
 
-ECS uses one NAT Gateway for outbound image pulls and AWS API access.
+The R2 secret must contain `accessKeyId` and `secretAccessKey`. Real tfvars,
+state, plans, and credentials are ignored and must never be committed.
 
-## Deploy
+## Bootstrap once
 
-Requires Terraform `>= 1.15.8`, AWS credentials, a Cloudflare-managed domain,
-and an ACM certificate in the deployment Region.
+The bootstrap root must exist before CI can authenticate or use remote state.
+Configure its example variables, apply it with an administrative AWS identity,
+and retain its local state. See [terraform/bootstrap](terraform/bootstrap/README.md).
 
-Create the remote-state bucket once:
+Create `plan` and `production` GitHub environments. Put the shared configuration
+variables in both environments: `TERRAFORM_STATE_BUCKET`, `AWS_REGION`,
+`DOMAIN_NAME`, `ACM_CERTIFICATE_ARN`, `GHOST_IMAGE`, `CLOUDFLARE_ACCOUNT_ID`,
+`R2_BUCKET_NAME`, `R2_MEDIA_HOSTNAME`, and `R2_CREDENTIALS_SECRET_ARN`.
 
-```bash
-cp terraform/bootstrap/terraform.tfvars.example terraform/bootstrap/terraform.tfvars
-terraform -chdir=terraform/bootstrap init
-terraform -chdir=terraform/bootstrap apply
-terraform -chdir=terraform/bootstrap output -raw state_bucket
-```
+Add `TERRAFORM_PLAN_ROLE_ARN` only to `plan`, and
+`TERRAFORM_APPLY_ROLE_ARN` only to `production`. Keep `plan` unrestricted;
+restrict `production` to `main` and add approval protection if available. A
+pull request runs static checks and a speculative plan; merging to `main` runs
+the protected apply workflow.
 
-Set a unique bucket name before applying, then copy the output into
-`terraform/backend.tf`. See
-[`terraform/bootstrap/README.md`](terraform/bootstrap/README.md) for details.
+After deployment, point the Ghost hostname at the `alb_dns_name` output. The R2
+custom domain serves `/content/images`, `/content/media`, and `/content/files`.
 
-Validate an ACM certificate for the exact Ghost hostname using a DNS-only
-Cloudflare CNAME. Then deploy:
+## Operational notes
 
-```bash
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# Set domain_name, acm_certificate_arn, and the official Ghost image digest.
-terraform -chdir=terraform init
-terraform fmt -recursive
-terraform -chdir=terraform validate
-terraform -chdir=terraform plan -out=ghost.tfplan
-terraform -chdir=terraform show ghost.tfplan
-terraform -chdir=terraform apply ghost.tfplan
-```
+- RDS deletion protection is enabled unless `allow_data_destruction = true`.
+- The application stack can be destroyed without deleting bootstrap or R2.
+- The apply workflow provisions and updates infrastructure; teardown is not
+  automated.
+- ALB, NAT Gateway, RDS, Fargate, Secrets Manager, logs, and R2 can incur cost.
 
-Use `terraform -chdir=terraform output -raw alb_dns_name` as the target of the
-Ghost Cloudflare CNAME. Start with **DNS only**; if proxying later, use
-Cloudflare **Full (strict)** SSL/TLS mode.
-
-## Not currently implemented
-
-- Reproducible custom-theme packaging and deployment.
-- Email, newsletters, memberships and payments.
-- CI/CD, application-wide CloudFront protection, alarms and tested disaster
-  recovery.
-- Multi-task, multi-NAT or multi-AZ database high availability.
-
-Posts, users and settings persist in RDS. Images, media and downloadable files
-persist in S3; custom theme changes inside a running task do not.
-
-## Repository layout
-
-```text
-terraform/
-├── bootstrap/       # Remote-state bucket
-├── modules/
-│   ├── network/     # VPC, routing, ALB and security groups
-│   ├── data/        # RDS and Secrets Manager
-│   ├── media/       # S3 and media-only CloudFront distribution
-│   └── compute/     # ECS, task-role IAM and logs
-└── *.tf             # Root configuration
-```
-
-## Cost and teardown
-
-The ALB, NAT Gateway, RDS, Fargate task and CloudFront traffic incur charges.
-Data resources are protected by default, so follow the intentional teardown
-procedure when practicing destruction. Set `allow_data_destruction=true` only
-for an intentional teardown, apply that change from a reviewed saved plan, then
-create and review a destroy plan with the same override. Retain the bootstrap
-bucket while it holds state.
+Not currently implemented: email delivery, payments, multi-task ECS, Multi-AZ
+RDS, per-AZ NAT gateways, WAF, alarms, and automated disaster recovery.
 
 ## License
 
-Infrastructure code is available under the [MIT License](LICENSE). Ghost is a
-trademark of the Ghost Foundation; this project deploys its official container
-image and does not include Ghost source code.
+[MIT](LICENSE). Ghost is a trademark of the Ghost Foundation; this repository
+deploys the official Ghost container image and does not include Ghost source.

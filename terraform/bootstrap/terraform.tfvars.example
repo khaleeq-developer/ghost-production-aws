@@ -1,5 +1,11 @@
 # Copy this file to terraform.tfvars and replace the bucket suffix.
 # S3 bucket names are globally unique, lowercase, and may contain hyphens.
 aws_region        = "us-east-1"
-project           = "ghost-aws"
-state_bucket_name = "ghost-aws-tfstate-replace-with-unique-suffix"
+project           = "ghost-production-aws"
+state_bucket_name = "ghost-production-aws-tfstate-replace-with-unique-suffix"
+
+# The repository trusted by GitHub Actions and its immutable numeric IDs.
+github_repository          = "owner/repository"
+github_repository_owner_id = "YOUR_OWNER_ID"
+github_repository_id       = "YOUR_REPOSITORY_ID"
+terraform_state_key        = "ghost-production-aws/terraform.tfstate"

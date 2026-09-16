@@ -8,21 +8,21 @@ locals {
   public_subnets = {
     for index, cidr in var.public_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 
   application_subnets = {
     for index, cidr in var.application_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 
   database_subnets = {
     for index, cidr in var.database_subnet_cidrs : tostring(index) => {
       availability_zone = local.availability_zones[index]
-      cidr_block         = cidr
+      cidr_block        = cidr
     }
   }
 }
@@ -108,9 +108,9 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# A single zonal NAT gateway keeps this learning deployment understandable and
-# cheaper. It is an intentional egress single point of failure; production HA
-# would use one NAT gateway per AZ or a justified VPC endpoint design.
+# A single zonal NAT gateway controls cost for this single-environment design.
+# It is an intentional egress single point of failure; production HA would use
+# one NAT gateway per AZ or a justified VPC endpoint design.
 resource "aws_eip" "nat" {
   domain = "vpc"
 
@@ -169,7 +169,7 @@ resource "aws_route_table_association" "database" {
 
 resource "aws_security_group" "alb" {
   name_prefix = "${var.name_prefix}-alb-"
-  description = "Public HTTP and HTTPS entry point for Ghost"
+  description = "Public HTTPS application load balancer for Ghost"
   vpc_id      = aws_vpc.main.id
 
   tags = {
@@ -197,18 +197,18 @@ resource "aws_security_group" "rds" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "alb_http" {
+resource "aws_vpc_security_group_ingress_rule" "alb_http_from_internet" {
   security_group_id = aws_security_group.alb.id
-  description       = "Public HTTP traffic"
+  description       = "HTTP from the internet for HTTPS redirects"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   ip_protocol       = "tcp"
   to_port           = 80
 }
 
-resource "aws_vpc_security_group_ingress_rule" "alb_https" {
+resource "aws_vpc_security_group_ingress_rule" "alb_https_from_internet" {
   security_group_id = aws_security_group.alb.id
-  description       = "Public HTTPS traffic"
+  description       = "HTTPS from the internet"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   ip_protocol       = "tcp"

@@ -19,9 +19,18 @@ data "aws_iam_policy_document" "database_secret" {
   }
 }
 
+data "aws_iam_policy_document" "r2_credentials" {
+  statement {
+    sid       = "ReadGhostR2Credentials"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.media_credentials_secret_arn]
+  }
+}
+
 resource "aws_iam_role" "execution" {
   name_prefix        = "ghost-execution-"
-  description        = "Allows ECS to pull Ghost and inject its database secret"
+  description        = "Allows ECS to pull Ghost and inject database and R2 secrets"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
 
   tags = {
@@ -40,7 +49,14 @@ resource "aws_iam_role_policy" "database_secret" {
   policy      = data.aws_iam_policy_document.database_secret.json
 }
 
-# Ghost receives only the media-bucket permissions declared in media.tf.
+resource "aws_iam_role_policy" "r2_credentials" {
+  name_prefix = "ghost-r2-credentials-"
+  role        = aws_iam_role.execution.id
+  policy      = data.aws_iam_policy_document.r2_credentials.json
+}
+
+# R2 is accessed with container secrets, so the application task role needs no
+# AWS media permissions.
 resource "aws_iam_role" "task" {
   name_prefix        = "ghost-task-"
   description        = "Application role for the Ghost container"
@@ -145,11 +161,15 @@ resource "aws_ecs_task_definition" "ghost" {
         },
         {
           name  = "storage__S3Storage__region"
-          value = var.aws_region
+          value = "auto"
+        },
+        {
+          name  = "storage__S3Storage__endpoint"
+          value = var.media_endpoint
         },
         {
           name  = "storage__S3Storage__cdnUrl"
-          value = var.media_cdn_url
+          value = var.media_url
         },
         {
           name  = "storage__S3Storage__staticFileURLPrefix"
@@ -164,12 +184,16 @@ resource "aws_ecs_task_definition" "ghost" {
           value = "8388608"
         },
         {
+          name  = "urls__image"
+          value = var.media_url
+        },
+        {
           name  = "urls__media"
-          value = var.media_cdn_url
+          value = var.media_url
         },
         {
           name  = "urls__files"
-          value = var.media_cdn_url
+          value = var.media_url
         }
       ]
 
@@ -193,6 +217,14 @@ resource "aws_ecs_task_definition" "ghost" {
         {
           name      = "database__connection__password"
           valueFrom = "${var.database_secret_arn}:password::"
+        },
+        {
+          name      = "storage__S3Storage__accessKeyId"
+          valueFrom = "${var.media_credentials_secret_arn}:accessKeyId::"
+        },
+        {
+          name      = "storage__S3Storage__secretAccessKey"
+          valueFrom = "${var.media_credentials_secret_arn}:secretAccessKey::"
         }
       ]
 
@@ -210,7 +242,7 @@ resource "aws_ecs_task_definition" "ghost" {
   depends_on = [
     aws_iam_role_policy_attachment.execution,
     aws_iam_role_policy.database_secret,
-    aws_iam_role_policy.media,
+    aws_iam_role_policy.r2_credentials,
   ]
 
   tags = {
