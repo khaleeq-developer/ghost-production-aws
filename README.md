@@ -64,6 +64,8 @@ custom domain serves `/content/images`, `/content/media`, and `/content/files`.
 
 - RDS deletion protection is disabled by default for this experimental stack;
   set `allow_data_destruction = false` for a longer-lived deployment.
+- Destroying the stack deletes the database without a final snapshot. Ghost
+  content is not recoverable after `DESTROY`.
 - The application stack can be destroyed without deleting bootstrap or R2.
 - Saved plans expire from the private state bucket after two days and are
   removed immediately after a successful apply.

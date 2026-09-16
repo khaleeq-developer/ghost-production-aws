@@ -4,10 +4,6 @@ resource "random_password" "database" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-resource "random_id" "database_final_snapshot" {
-  byte_length = 4
-}
-
 resource "aws_db_subnet_group" "ghost" {
   name_prefix = "${var.name_prefix}-db-"
   description = "Isolated database subnets for Ghost"
@@ -48,9 +44,10 @@ resource "aws_db_instance" "ghost" {
   apply_immediately          = true
   copy_tags_to_snapshot      = true
 
-  deletion_protection       = var.deletion_protection
-  skip_final_snapshot       = false
-  final_snapshot_identifier = "${var.name_prefix}-final-${random_id.database_final_snapshot.hex}"
+  # Sandbox stack: tear down without a final snapshot. The apply role has no
+  # rds:CreateDBSnapshot permission, so a snapshot attempt would fail anyway.
+  deletion_protection = var.deletion_protection
+  skip_final_snapshot = true
 
   tags = {
     Name = "${var.name_prefix}-mysql"

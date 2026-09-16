@@ -165,6 +165,7 @@ data "aws_iam_policy_document" "plan" {
       "acm:DescribeCertificate",
       "acm:ListCertificates",
       "ec2:DescribeAddresses",
+      "ec2:DescribeAddressesAttribute",
       "ec2:DescribeAvailabilityZones",
       "ec2:DescribeInternetGateways",
       "ec2:DescribeNatGateways",
@@ -182,6 +183,7 @@ data "aws_iam_policy_document" "plan" {
       "ecs:ListClusters",
       "ecs:ListServices",
       "ecs:ListTagsForResource",
+      "elasticloadbalancing:DescribeListenerAttributes",
       "elasticloadbalancing:DescribeListeners",
       "elasticloadbalancing:DescribeLoadBalancerAttributes",
       "elasticloadbalancing:DescribeLoadBalancers",
@@ -218,6 +220,7 @@ data "aws_iam_policy_document" "plan" {
     effect = "Allow"
     actions = [
       "secretsmanager:DescribeSecret",
+      "secretsmanager:GetResourcePolicy",
       "secretsmanager:GetSecretValue",
     ]
     resources = [local.database_secret_arn_pattern]
@@ -296,13 +299,20 @@ data "aws_iam_policy_document" "apply" {
     resources = ["*"]
   }
 
+  # DescribeLogGroups is a list operation; it cannot be scoped to a log group.
+  statement {
+    sid       = "ListCloudWatchLogGroups"
+    effect    = "Allow"
+    actions   = ["logs:DescribeLogGroups"]
+    resources = ["*"]
+  }
+
   statement {
     sid    = "ManageCloudWatchProjectLogs"
     effect = "Allow"
     actions = [
       "logs:CreateLogGroup",
       "logs:DeleteLogGroup",
-      "logs:DescribeLogGroups",
       "logs:ListTagsForResource",
       "logs:PutRetentionPolicy",
       "logs:TagResource",
@@ -337,6 +347,7 @@ data "aws_iam_policy_document" "apply" {
       "ec2:DeleteTags",
       "ec2:DeleteVpc",
       "ec2:DescribeAddresses",
+      "ec2:DescribeAddressesAttribute",
       "ec2:DescribeAvailabilityZones",
       "ec2:DescribeInternetGateways",
       "ec2:DescribeNatGateways",
@@ -370,6 +381,7 @@ data "aws_iam_policy_document" "apply" {
       "elasticloadbalancing:DeleteListener",
       "elasticloadbalancing:DeleteLoadBalancer",
       "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:DescribeListenerAttributes",
       "elasticloadbalancing:DescribeListeners",
       "elasticloadbalancing:DescribeLoadBalancerAttributes",
       "elasticloadbalancing:DescribeLoadBalancers",
@@ -421,6 +433,7 @@ data "aws_iam_policy_document" "apply" {
       "iam:GetRole",
       "iam:GetRolePolicy",
       "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
       "iam:ListRolePolicies",
       "iam:PutRolePolicy",
       "iam:TagRole",
@@ -485,6 +498,7 @@ data "aws_iam_policy_document" "apply" {
       "secretsmanager:CreateSecret",
       "secretsmanager:DeleteSecret",
       "secretsmanager:DescribeSecret",
+      "secretsmanager:GetResourcePolicy",
       "secretsmanager:GetSecretValue",
       "secretsmanager:PutSecretValue",
       "secretsmanager:TagResource",
