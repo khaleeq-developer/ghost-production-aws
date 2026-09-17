@@ -11,15 +11,13 @@ publishing platform on AWS, built as a portfolio project to demonstrate
 production infrastructure practices: modular Terraform, keyless CI/CD through
 GitHub OIDC, least-privilege IAM, and a plan-review-apply release gate.
 
-> **Project status:** built, deployed end-to-end, and verified serving Ghost
-> over HTTPS with media on Cloudflare R2 — then deliberately torn down to avoid
-> idle cost. The repository is kept as a reference implementation; every
-> resource here can be recreated from scratch with the steps below.
+> **Project status:** built and deployed end-to-end, verified serving Ghost
+> over HTTPS with media on Cloudflare R2, and captured in the screenshots
+> below — then deliberately torn down to avoid idle cost. The repository is
+> kept as a reference implementation; every resource here can be recreated
+> from scratch with the steps below.
 
-<!-- SCREENSHOT SLOT 1 — hero
-     Suggested: the live Ghost site over HTTPS on the custom domain.
-     ![Ghost running on AWS](assets/ghost-live.png)
--->
+![Ghost running on AWS over HTTPS at the custom domain](screenshots/ghost-live.png)
 
 ## What this project demonstrates
 
@@ -59,6 +57,8 @@ the internet; the ECS group accepts 2368 *only from the ALB group*; the RDS
 group accepts 3306 *only from the ECS group*. Database subnets have no route
 to a NAT or internet gateway.
 
+![The Ghost service running one healthy Fargate task in the ECS cluster](screenshots/ecs-service.png)
+
 ## CI/CD pipeline
 
 ```mermaid
@@ -75,11 +75,7 @@ flowchart LR
   PR --> Main --> Release
 ```
 
-<!-- SCREENSHOT SLOT 2 — pipeline
-     Suggested: a green "Terraform production deployment" run showing the
-     plan → apply jobs, or the run summary with the Terraform outputs.
-     ![Deployment run](assets/pipeline-run.png)
--->
+![Applying the saved plan: 48 resources added, stack outputs published to the run summary](screenshots/apply-summary.png)
 
 Why it is shaped this way:
 
@@ -87,6 +83,9 @@ Why it is shaped this way:
   is stored with a checksum and re-verified before apply; `terraform apply`
   never re-plans in CI. If state drifts in between, Terraform rejects the
   stale plan rather than silently doing something else.
+
+  ![The saved plan and its SHA-256 checksum, created by the read-only plan role](screenshots/plan-checksum.png)
+
 - **Two roles, two environments.** The `plan` environment can only read state
   and describe resources. The `production` environment is restricted to
   `main`, holds the apply role, and requires a typed `APPLY` / `DESTROY`
