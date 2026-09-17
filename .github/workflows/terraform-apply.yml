@@ -47,6 +47,7 @@ jobs:
       id-token: write
     env:
       TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_project: ${{ vars.PROJECT }}
       TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
       TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
       TF_VAR_ghost_image: ${{ vars.GHOST_IMAGE }}
@@ -126,6 +127,7 @@ jobs:
       id-token: write
     env:
       TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_project: ${{ vars.PROJECT }}
       TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
       TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
       TF_VAR_ghost_image: ${{ vars.GHOST_IMAGE }}
@@ -228,6 +230,7 @@ jobs:
       contents: read
       id-token: write
     env:
+      TF_VAR_project: ${{ vars.PROJECT }}
       TF_STATE_BUCKET: ${{ vars.TERRAFORM_STATE_BUCKET }}
       TF_STATE_KEY: ghost-production-aws/terraform.tfstate
 

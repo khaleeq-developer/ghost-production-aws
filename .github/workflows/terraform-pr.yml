@@ -9,8 +9,9 @@ on:
       - "README.md"
       - "terraform/modules/README.md"
 
-# Static validation must remain safe for forked pull requests. It receives only
-# repository read access; the separate plan job is the sole OIDC consumer.
+# Every job runs only for pull requests opened from this repository. Forked
+# pull requests trigger nothing; the plan job is additionally the sole OIDC
+# consumer and receives only repository read access otherwise.
 permissions:
   contents: read
 
@@ -22,6 +23,7 @@ env:
 jobs:
   static:
     name: Static Terraform checks
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
@@ -58,7 +60,8 @@ jobs:
   plan:
     name: Speculative Terraform plan
     needs: static
-    # Never expose AWS credentials or an OIDC token to forked pull-request code.
+    # Repeated here on purpose: never expose AWS credentials or an OIDC token
+    # to forked pull-request code, even if the static job's guard changes.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: plan
@@ -70,6 +73,7 @@ jobs:
       cancel-in-progress: false
     env:
       TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_project: ${{ vars.PROJECT }}
       TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
       TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
       TF_VAR_ghost_image: ${{ vars.GHOST_IMAGE }}
