@@ -26,6 +26,7 @@ Before AWS-backed jobs can run:
 | Variable | Environment | Source |
 | --- | --- | --- |
 | `AWS_REGION` | both | deployment Region, for example `us-east-1` |
+| `PROJECT` | both | project name used for resource naming; must match the bootstrap root's `project` |
 | `TERRAFORM_STATE_BUCKET` | both | bootstrap output `state_bucket` |
 | `DOMAIN_NAME` | both | Ghost site hostname |
 | `ACM_CERTIFICATE_ARN` | both | issued certificate for `DOMAIN_NAME` |
